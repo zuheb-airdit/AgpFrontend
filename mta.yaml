@@ -1,0 +1,81 @@
+_schema-version: "3.2"
+ID: vendorportal
+version: 0.0.1
+modules:
+- name: vendorportal-approuter
+  type: approuter.nodejs
+  path: vendorportal-approuter
+  requires:
+  - name: vendorportal_html_repo_runtime
+  - name: uaa_vendorportal
+  - name: vendorportal-destination-service
+    group: destinations
+    properties:
+      forwardAuthToken: false
+      name: ui5
+      url: https://ui5.sap.com
+  parameters:
+    disk-quota: 512M
+    memory: 512M
+- name: vendorportal_ui_deployer
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: vendorportal_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - comairvplnchpage.zip
+      name: comairvplnchpage
+      target-path: resources/
+- name: comairvplnchpage
+  type: html5
+  path: lnchpage
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: vendorportal_html_repo_runtime
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-plan: app-runtime
+- name: uaa_vendorportal
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: vendorportal-xsuaa-service
+    service-plan: application
+- name: vendorportal_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-plan: app-host
+- name: vendorportal-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: false
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: vendorportal-destination-service
+    service-plan: lite
+parameters:
+  deploy_mode: html5-repo
